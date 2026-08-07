@@ -1,0 +1,6 @@
+*.idea
+**.idea
+model_weights
+model_weights/*
+model_weights/**
+extract_annot_spectra.ipynb
