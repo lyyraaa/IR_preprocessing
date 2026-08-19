@@ -1,16 +1,17 @@
 import numpy as np
 import sys
+from pybaselines import Baseline
 sys.path.append(r'C:/Users/w37262do/Documents/git/IR_preprocessing')
 sys.path.append('C:/Users/w37262do/Documents/git/PyIR/src')
 sys.path.append(r'/mnt/iusers01/eee01/w37262do/scratch/IR_preprocessing')
 sys.path.append(r'/mnt/iusers01/eee01/w37262do/scratch/IR_preprocessing/PyIR/src')
 from pyir_spectralcollection import PyIR_SpectralCollection as pir
-
+from sklearn.decomposition import PCA
 
 
 class PreprocessingBase():
-    def __init__(self):
-        self.name = "identity"
+    def __init__(self,args):
+        self.args = args
         self.kit = pir()
 
     def spectral_transform(self, spectra, wavenumbers=None):
@@ -31,6 +32,28 @@ class QCL2026(PreprocessingBase):
         transformed_spectra, transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, wavenumbers, 21, 5, 1)
         return transformed_spectra, transformed_wavenumbers
 
+class PCASmooth(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        pca = PCA(n_components=int(self.args[0]))
+        pca.fit(spectra)
+        transformed_spectra = pca.inverse_transform(pca.transform(spectra))
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
+
+class modpoly(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        baseline_fitter = Baseline(x_data=wavenumbers)
+        transformed_spectra = np.array([spec - baseline_fitter.modpoly(spec,poly_order=int(self.args[0]))[0] for spec in spectra])
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
+
+class rubberband(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        baseline_fitter = Baseline(x_data=wavenumbers)
+        transformed_spectra = np.array(
+            [spec - baseline_fitter.rubberband(spec,lam=float(self.args[0]))[0] for spec in spectra])
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
 
 class min2zero(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
@@ -67,14 +90,11 @@ class baseline_correct_mean(PreprocessingBase):
         transformed_wavenumbers = wavenumbers
         return transformed_spectra, transformed_wavenumbers
 
-class deriv_1(PreprocessingBase):
+class sg_filter(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
-        transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 1)
-        return transformed_spectra, transformed_wavenumbers
-
-class deriv_2(PreprocessingBase):
-    def spectral_transform(self, spectra, wavenumbers=None):
-        transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 2)
+        transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(
+            spectra, wavenumbers, int(self.args[0]), int(self.args[0]), int(self.args[0])
+        )
         return transformed_spectra, transformed_wavenumbers
 
 class remove_glycogen(PreprocessingBase):
@@ -93,11 +113,19 @@ trans_dict = {
     'remove_wax':remove_wax,
     'baseline_correct':baseline_correct,
     'baseline_correct_mean':baseline_correct_mean,
-    'deriv_1':deriv_1,
-    'deriv_2':deriv_2,
+    'sg_filter':sg_filter,
     'remove_glycogen':remove_glycogen,
     ### Established pipelines
     'QCL2026':QCL2026,
+    ### New baseline ones
+    'rubberband':rubberband,
+    'modpoly':modpoly,
+    'pcasmooth':PCASmooth,
+    # todo: MNF smoothing
+    # todo: fix feature norm
+    # todo: channel standardisation?
+    # todo: ALS baseline
+
 }
-def get_processing_tk_from_name(pipeline_name,):
-    return trans_dict[pipeline_name]()
+def get_processing_tk_from_name(pipeline_name,args=None):
+    return trans_dict[pipeline_name](args)
