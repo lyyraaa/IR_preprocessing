@@ -133,8 +133,8 @@ else:
     train_std = train_std.reshape(1,num_wavenumbers,1,1).to(device)
 
 def norm(core, mask):
-    core -= train_mean
-    core /= train_std
+    #core -= train_mean
+    #core /= train_std
     # core = core * mask
     return core
 #%% md

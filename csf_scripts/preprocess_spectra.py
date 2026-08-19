@@ -19,7 +19,7 @@ else:
 from src.preprocessing_tk import *
 
 # Preprocessing protocol
-protocol_name = sys.argv[-1] if not is_local else 'QCL2026'
+protocol_name = sys.argv[-1] if not is_local else 'raw'
 #%% md
 ## Define Preprocessing Protocol
 #%%

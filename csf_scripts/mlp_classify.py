@@ -55,7 +55,7 @@ use_augmentation = True
 batch_size = 64
 initial_lr = 1e-5 # todo look what these might need to be set to
 l2 = 5e-2
-max_epochs = 30 # todo this probably needs to be much much lower, is 10 okay?
+max_epochs = 30
 warmup_epochs = 3
 min_lr = 1e-7
 save_best_model = True
@@ -113,8 +113,8 @@ train_mean = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
 train_std = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
 
 def norm(batch):
-    batch -= train_mean
-    batch /= train_std
+    #batch -= train_mean
+    #batch /= train_std
     return batch
 #%% md
 ## Define Model
