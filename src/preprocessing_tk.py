@@ -30,6 +30,16 @@ class PreprocessingBase():
             transformed_image[np.where(mask==1)] = transformed_spectra
             return transformed_image, transformed_wavenumbers
 
+class MNFSmooth(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        transformed_spectra,_,_ = self.kit.imnf_denoise(
+            spectra,
+            wavenumbers=wavenumbers,
+            bands=int(self.args[0]),
+            noise_method=self.args[1],) # 'silent_region' for spatially-invariant, or 'traditional_MNF' for traditional MNF
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
+
 class QCL2026(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         transformed_spectra = self.kit.all_spec_min2zero(spectra)
@@ -127,15 +137,14 @@ trans_dict = {
     'baseline_correct_mean':baseline_correct_mean,
     'sg_filter':sg_filter,
     'remove_glycogen':remove_glycogen,
+    'pcasmooth':PCASmooth,
+    'mnfsmooth':MNFSmooth,
     ### Established pipelines
     'QCL2026':QCL2026,
     ### New baseline ones
     'rubberband':rubberband,
     'modpoly':modpoly,
     'asls':asls,
-    'pcasmooth':PCASmooth,
-    # todo: MNF smoothing
-    # todo: fix feature norm
 
 }
 def get_processing_tk_from_name(pipeline_name,args=None):
