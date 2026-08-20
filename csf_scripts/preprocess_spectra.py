@@ -19,8 +19,8 @@ else:
 from src.preprocessing_tk import *
 
 # Preprocessing protocol
-protocol_name = sys.argv[1] if not is_local else 'rubberband'
-protocol_args = sys.argv[2:] if not is_local else ['10',]
+protocol_name = sys.argv[1] if not is_local else 'mnfsmooth'
+protocol_args = sys.argv[2:] if not is_local else ['20','traditional_MNF',]
 #%% md
 ## Define Preprocessing Protocol
 #%%
@@ -105,6 +105,9 @@ for cls in range(len(annotation_class_names)):
     ax[cls].set_yticks(np.linspace(vmin,vmax,11),labels=[])
 
 fig.tight_layout()
+if not is_local:
+    plt.savefig(f'./processed_spectra.png')
+    plt.close(fig)
 #%% md
 ## Save Processing Results
 #%%

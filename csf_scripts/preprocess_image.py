@@ -25,7 +25,10 @@ protocol_args = sys.argv[2:] if not is_local else ['10',]
 ## Import Data Sheets
 #%%
 master_nocl = pd.read_excel(rf'D:/datasets/qcl2026_raw/master_sheet.xlsx' if is_local else r'./qcl2026_processed/master_sheet.xlsx')
+master_nocl = master_nocl.iloc[np.where(master_nocl['annotated_pixels'].to_numpy() > 0)]
+
 master_aus = pd.read_excel(rf'F:/datasets/aus_qcl2026_raw/master_sheet.xlsx' if is_local else r'./aus_qcl2026_processed/master_sheet.xlsx')
+master_aus = master_aus.iloc[np.where(master_aus['annotated_pixels'].to_numpy() > 0)]
 #%% md
 ## Define Preprocessing Protocol
 #%%
@@ -58,7 +61,7 @@ for didx,dset in enumerate([master_nocl, master_aus]):
 
         # preprocess ir according to protocol
         process_start_time = time.time()
-        processed_ir, processed_wavenumbers = preprocessing_tk.image_transform(raw_ir,raw_wavenumbers)
+        processed_ir, processed_wavenumbers = preprocessing_tk.image_transform(raw_ir,wavenumbers=raw_wavenumbers,mask=mask)
         process_time = time.time() - process_start_time
         core_processing_times.append(process_time)
         print(f" | processed in {process_time:.3f}s")
@@ -125,6 +128,17 @@ ax[1].set_title(f"Tissue Spectra | processed w/ {protocol_name}")
 fig.tight_layout()
 if not is_local:
     plt.savefig(f'./sample_processed.png')
+    plt.close(fig)
+#%%
+fig,ax = plt.subplots(4,4,figsize=(15,15.5)); ax = ax.flatten()
+wvshows = np.arange(1000,1800,50)
+for x in range(16):
+    wvidx = np.argmin(np.abs(processed_wavenumbers-wvshows[x]))
+    ax[x].matshow(ir[:,:,wvidx],cmap='bone');ax[x].set_axis_off()
+    ax[x].set_title(f"core @ {processed_wavenumbers[wvidx]:.2f}{cm}",y=0.99)
+fig.tight_layout()
+if not is_local:
+    plt.savefig(f'./sample_channels.png')
     plt.close(fig)
 #%% md
 ## Save Processing Results
