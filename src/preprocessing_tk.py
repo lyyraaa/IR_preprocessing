@@ -19,10 +19,16 @@ class PreprocessingBase():
         transformed_wavenumbers = wavenumbers
         return transformed_spectra, transformed_wavenumbers
 
-    def image_transform(self, image, wavenumbers=None):
+    def image_transform(self, image, wavenumbers=None, mask=None):
         h,w,c = image.shape
-        transformed_image, transformed_wavenumbers = self.spectral_transform(image.reshape(h*w,c),wavenumbers)
-        return transformed_image.reshape(h,w,-1), transformed_wavenumbers
+        if mask is None:
+            transformed_image, transformed_wavenumbers = self.spectral_transform(image.reshape(h*w,c),wavenumbers)
+            return transformed_image.reshape(h, w, -1), transformed_wavenumbers
+        else:
+            transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask==1],wavenumbers)
+            transformed_image = np.zeros((h,w,transformed_spectra.shape[-1]))
+            transformed_image[np.where(mask==1)] = transformed_spectra
+            return transformed_image, transformed_wavenumbers
 
 class QCL2026(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
