@@ -25,7 +25,7 @@ from src.utils import ir_spectra_dataset, adjust_learning_rate
 from src.models import MLP
 #%%
 # Experiment
-seed = int(sys.argv[-1]) if not is_local else 10447201
+seed = int(sys.argv[1]) if not is_local else 10447201
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
@@ -42,6 +42,7 @@ input_image_dims = np.array([num_wavenumbers, 360, 360])
 annotation_class_colors = np.array([[0,255,0],[128,0,128],[255,0,255],[0,0,255],[255,165,0],[255,0,0], [255,255,0]])
 annotation_class_names = np.array(['epithelium_n','stroma_n','epithelium_c','stroma_c','corpora_amylacea','blood','immune_inf'])
 n_classes = len(annotation_class_names)
+standardise_data = bool(int(sys.argv[2])) if not is_local else 0
 
 # Data loading
 test_set_fraction = 0.2
@@ -113,8 +114,9 @@ train_mean = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
 train_std = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
 
 def norm(batch):
-    #batch -= train_mean
-    #batch /= train_std
+    if standardise_data:
+        batch -= train_mean
+        batch /= train_std
     return batch
 #%% md
 ## Define Model

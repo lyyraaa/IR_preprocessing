@@ -24,7 +24,6 @@ class PreprocessingBase():
         transformed_image, transformed_wavenumbers = self.spectral_transform(image.reshape(h*w,c),wavenumbers)
         return transformed_image.reshape(h,w,-1), transformed_wavenumbers
 
-
 class QCL2026(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         transformed_spectra = self.kit.all_spec_min2zero(spectra)
@@ -44,6 +43,13 @@ class modpoly(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         baseline_fitter = Baseline(x_data=wavenumbers)
         transformed_spectra = np.array([spec - baseline_fitter.modpoly(spec,poly_order=int(self.args[0]))[0] for spec in spectra])
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
+
+class asls(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        baseline_fitter = Baseline(x_data=wavenumbers)
+        transformed_spectra = np.array([spec - baseline_fitter.asls(spec,lam=int(self.args[0]))[0] for spec in spectra])
         transformed_wavenumbers = wavenumbers
         return transformed_spectra, transformed_wavenumbers
 
@@ -69,7 +75,7 @@ class vector_norm(PreprocessingBase):
 
 class feature_norm(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
-        transformed_spectra = self.kit.feature_norm(spectra)
+        transformed_spectra = self.kit.feature_norm(data=spectra,feature_pos=int(self.args[0]),wavenumbers=wavenumbers)
         transformed_wavenumbers = wavenumbers
         return transformed_spectra, transformed_wavenumbers
 
@@ -93,7 +99,7 @@ class baseline_correct_mean(PreprocessingBase):
 class sg_filter(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(
-            spectra, wavenumbers, int(self.args[0]), int(self.args[0]), int(self.args[0])
+            spectra, wavenumbers, int(self.args[0]), int(self.args[1]), int(self.args[2])
         )
         return transformed_spectra, transformed_wavenumbers
 
@@ -120,11 +126,10 @@ trans_dict = {
     ### New baseline ones
     'rubberband':rubberband,
     'modpoly':modpoly,
+    'asls':asls,
     'pcasmooth':PCASmooth,
     # todo: MNF smoothing
     # todo: fix feature norm
-    # todo: channel standardisation?
-    # todo: ALS baseline
 
 }
 def get_processing_tk_from_name(pipeline_name,args=None):

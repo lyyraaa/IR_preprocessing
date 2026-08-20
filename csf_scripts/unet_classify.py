@@ -24,7 +24,7 @@ from src.utils import ir_core_dataset_torch, statistics_from_loader, adjust_lear
 from src.models import UNet
 #%%
 # Experiment
-seed = int(sys.argv[-1]) if not is_local else 10447201
+seed = int(sys.argv[1]) if not is_local else 10447201
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
@@ -42,6 +42,7 @@ input_image_dims = np.array([num_wavenumbers, 360, 360])
 annotation_class_colors = np.array([[0,255,0],[128,0,128],[255,0,255],[0,0,255],[255,165,0],[255,0,0], [255,255,0]])
 annotation_class_names = np.array(['epithelium_n','stroma_n','epithelium_c','stroma_c','corpora_amylacea','blood','immune_inf'])
 n_classes = len(annotation_class_names)
+standardise_data = bool(int(sys.argv[2])) if not is_local else 0
 
 # Data loading
 test_set_fraction = 0.2
@@ -133,9 +134,9 @@ else:
     train_std = train_std.reshape(1,num_wavenumbers,1,1).to(device)
 
 def norm(core, mask):
-    #core -= train_mean
-    #core /= train_std
-    # core = core * mask
+    if standardise_data:
+        core -= train_mean
+        core /= train_std
     return core
 #%% md
 ## Define Model
@@ -468,7 +469,7 @@ if not is_local:
     lines[n_classes + 1] = lines[n_classes + 1].replace('\n', str(test_acc) + ', \n')
     lines[n_classes + 2] = lines[n_classes + 2].replace('\n', str(test_f1m) + ', \n')
 
-    f = open(f'results_{model_name}.txt', 'w')
+    f = open(f'results_NOCL_{model_name}.txt', 'w')
     f.write(''.join(lines))
     f.close()
 

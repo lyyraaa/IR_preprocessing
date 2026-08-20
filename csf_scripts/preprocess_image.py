@@ -19,7 +19,8 @@ else:
 from src.preprocessing_tk import *
 
 # Preprocessing protocol
-protocol_name = sys.argv[-1] if not is_local else 'QCL2026'
+protocol_name = sys.argv[1] if not is_local else 'pcasmooth'
+protocol_args = sys.argv[2:] if not is_local else ['10',]
 #%% md
 ## Import Data Sheets
 #%%
@@ -28,7 +29,7 @@ master_aus = pd.read_excel(rf'F:/datasets/aus_qcl2026_raw/master_sheet.xlsx' if 
 #%% md
 ## Define Preprocessing Protocol
 #%%
-preprocessing_tk = get_processing_tk_from_name(protocol_name)
+preprocessing_tk = get_processing_tk_from_name(protocol_name,protocol_args)
 #%% md
 ## Do Preprocessing & Saving Loop
 #%%

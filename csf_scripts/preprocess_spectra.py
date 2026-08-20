@@ -19,11 +19,12 @@ else:
 from src.preprocessing_tk import *
 
 # Preprocessing protocol
-protocol_name = sys.argv[-1] if not is_local else 'raw'
+protocol_name = sys.argv[1] if not is_local else 'rubberband'
+protocol_args = sys.argv[2:] if not is_local else ['10',]
 #%% md
 ## Define Preprocessing Protocol
 #%%
-preprocessing_tk = get_processing_tk_from_name(protocol_name)
+preprocessing_tk = get_processing_tk_from_name(protocol_name,protocol_args)
 #%% md
 ## Do Preprocessing & Saving Loop
 #%%
@@ -123,3 +124,4 @@ if not is_local:
     f = open(f'results_processing.txt', 'w')
     f.write(''.join(lines))
     f.close()
+#%%
