@@ -24,7 +24,7 @@ protocol_args = sys.argv[2:] if not is_local else ['10',]
 #%% md
 ## Import Data Sheets
 #%%
-master_nocl = pd.read_excel(rf'D:/datasets/qcl2026_raw/master_sheet.xlsx' if is_local else r'./qcl2026_processed/master_sheet.xlsx')
+master_nocl = pd.read_excel(rf'D:/datasets/qcl2026_raw/master_sheet_only_annotated.xlsx' if is_local else r'./qcl2026_processed/master_sheet.xlsx')
 master_nocl = master_nocl.iloc[np.where(master_nocl['annotated_pixels'].to_numpy() > 0)]
 
 master_aus = pd.read_excel(rf'F:/datasets/aus_qcl2026_raw/master_sheet.xlsx' if is_local else r'./aus_qcl2026_processed/master_sheet.xlsx')

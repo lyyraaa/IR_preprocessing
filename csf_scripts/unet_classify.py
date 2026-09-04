@@ -133,6 +133,8 @@ else:
     train_mean = train_mean.reshape(1,num_wavenumbers,1,1).to(device)
     train_std = train_std.reshape(1,num_wavenumbers,1,1).to(device)
 
+train_std[torch.where(train_std==0)] = 1 # some transforms set every wavenumber to 0. this gives div by zero error for std
+
 def norm(core, mask):
     if standardise_data:
         core -= train_mean

@@ -112,6 +112,7 @@ print(f"Independent cohort: {len(aus_loader)}")
 #%%
 train_mean = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
 train_std = spectra_nocl[where_train].mean(0).reshape(1,-1).to(device)
+train_std[torch.where(train_std==0)] = 1 # some transforms set every wavenumber to 0. this gives div by zero error for std
 
 def norm(batch):
     if standardise_data:

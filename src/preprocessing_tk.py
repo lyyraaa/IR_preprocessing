@@ -1,5 +1,7 @@
 import numpy as np
 import sys
+
+from openpyxl.descriptors import MinMax
 from pybaselines import Baseline
 sys.path.append(r'C:/Users/w37262do/Documents/git/IR_preprocessing')
 sys.path.append('C:/Users/w37262do/Documents/git/PyIR/src')
@@ -124,6 +126,83 @@ class remove_glycogen(PreprocessingBase):
         transformed_spectra,transformed_wavenumbers = self.kit.remove_range(1060,952, spectra, wavenumbers)
         return transformed_spectra, transformed_wavenumbers
 
+class MinMax(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        transformed_spectra = spectra - spectra.min(1,keepdims=True)
+        transformed_spectra = transformed_spectra / transformed_spectra.max(1,keepdims=True)
+        transformed_wavenumbers = wavenumbers
+        return transformed_spectra, transformed_wavenumbers
+
+class GreedyPipeline(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+
+        transformed_spectra, transformed_wavenumbers = spectra, wavenumbers
+
+        # DENOISE STEP
+        if self.args[0] == 'sg':
+            transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, transformed_wavenumbers, 21, 5, 0)
+        elif self.args[0] == 'pca':
+            pca = PCA(n_components=30)
+            pca.fit(transformed_spectra)
+            transformed_spectra = pca.inverse_transform(pca.transform(transformed_spectra))
+        elif self.args[0] == 'mnf':
+            transformed_spectra, _, _ = self.kit.imnf_denoise(transformed_spectra,wavenumbers=transformed_wavenumbers,bands=30,noise_method='traditional_MNF')  # 'silent_region' for spatially-invariant, or 'traditional_MNF' for traditional MNF
+        elif self.args[0] == 'imnf':
+            transformed_spectra, _, _ = self.kit.imnf_denoise(transformed_spectra,wavenumbers=transformed_wavenumbers,bands=30,noise_method='silent_region')
+
+        # WAX REMOVAL STEP
+        if self.args[1] == 'waxremove':
+            transformed_spectra,transformed_wavenumbers = self.kit.remove_wax(transformed_spectra,transformed_wavenumbers)
+
+        # BASELINE STEP
+        baseline_fitter = Baseline(x_data=transformed_wavenumbers)
+        if self.args[2] == 'min2zero':
+            transformed_spectra = self.kit.all_spec_min2zero(transformed_spectra)
+        elif self.args[2] == 'rubberband':
+            transformed_spectra = np.array(
+                [spec - baseline_fitter.rubberband(spec, lam=0)[0] for spec in transformed_spectra]
+            )
+        elif self.args[2] == 'poly':
+            transformed_spectra = np.array(
+                [spec - baseline_fitter.modpoly(spec, poly_order=2)[0] for spec in transformed_spectra]
+            )
+        elif self.args[2] == 'asls':
+            transformed_spectra = np.array(
+                [spec - baseline_fitter.asls(spec)[0] for spec in transformed_spectra]
+            )
+
+        # DERIVATIVE STEP
+        if self.args[3] == '1st':
+            transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, transformed_wavenumbers, 21, 5, 1)
+        elif self.args[3] == '2nd':
+            transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, transformed_wavenumbers, 21, 5, 2)
+        elif self.args[3] == '1staus':
+            transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, transformed_wavenumbers, 41, 2, 1)
+        elif self.args[3] == '2ndaus':
+            transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(transformed_spectra, transformed_wavenumbers, 41, 2, 2)
+
+        # NORMALISE STEP
+        if self.args[4] == 'minmax':
+            transformed_spectra = transformed_spectra - transformed_spectra.min(1, keepdims=True)
+            transformed_spectra = transformed_spectra / transformed_spectra.max(1, keepdims=True)
+        elif self.args[4] == 'amidei':
+            transformed_spectra = self.kit.feature_norm(data=transformed_spectra, feature_pos=1550,wavenumbers=transformed_wavenumbers)
+        elif self.args[4] == 'amideii':
+            transformed_spectra = self.kit.feature_norm(data=transformed_spectra, feature_pos=1650,wavenumbers=transformed_wavenumbers)
+        elif self.args[4] == 'vectornorm':
+            transformed_spectra = self.kit.vector_norm(transformed_spectra)
+
+        return transformed_spectra, transformed_wavenumbers
+
+
+class GreedyOptimal(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+
+        transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, int(self.args[0]), int(self.args[1]), 1)
+        transformed_spectra = self.kit.vector_norm(transformed_spectra)
+
+        return transformed_spectra, transformed_wavenumbers
+
 trans_dict = {
     ### Baseline
     'identity':PreprocessingBase,
@@ -139,12 +218,15 @@ trans_dict = {
     'remove_glycogen':remove_glycogen,
     'pcasmooth':PCASmooth,
     'mnfsmooth':MNFSmooth,
+    'minmax':MinMax,
     ### Established pipelines
     'QCL2026':QCL2026,
     ### New baseline ones
     'rubberband':rubberband,
     'modpoly':modpoly,
     'asls':asls,
+    'greedy':GreedyPipeline,
+    'greedy_optimal':GreedyOptimal,
 
 }
 def get_processing_tk_from_name(pipeline_name,args=None):
