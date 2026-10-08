@@ -188,6 +188,23 @@ class Hist(PreprocessingBase):
         ],axis=-1)
         return transformed_image, wavenumbers
 
+class DerivHist(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        transformed_spectra, transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 1)
+        return transformed_spectra, transformed_wavenumbers
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = np.stack([
+            skimage.exposure.equalize_hist(transformed_image[..., x], mask=mask) for x in range(len(transformed_wavenumbers))
+        ],axis=-1)
+        return transformed_image, transformed_wavenumbers
+
 class AdaptiveHist(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         print("WARNING: This function should not be called in this spatial transform")
