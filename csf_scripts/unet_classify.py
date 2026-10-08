@@ -113,7 +113,7 @@ dataset_test = ir_core_dataset_torch(
     augment=False,generator=gen
 )
 dataset_aus = ir_core_dataset_torch(
-    h5fp_aus[where_test], maskfp_aus[where_test], annofp_aus[where_test],
+    h5fp_aus, maskfp_aus, annofp_aus,
     annotation_class_names, annotation_class_colors,
     augment=False,generator=gen
 )
