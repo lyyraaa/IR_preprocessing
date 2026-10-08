@@ -19,16 +19,16 @@ else:
 from src.preprocessing_tk import *
 
 # Preprocessing protocol
-protocol_name = sys.argv[1] if not is_local else 'pcasmooth'
-protocol_args = sys.argv[2:] if not is_local else ['10',]
+protocol_name = sys.argv[1] if not is_local else 'median'
+protocol_args = sys.argv[2:] if not is_local else ['3','2']
 #%% md
 ## Import Data Sheets
 #%%
 master_nocl = pd.read_excel(rf'D:/datasets/qcl2026_raw/master_sheet_only_annotated.xlsx' if is_local else r'./qcl2026_processed/master_sheet.xlsx')
-master_nocl = master_nocl.iloc[np.where(master_nocl['annotated_pixels'].to_numpy() > 0)]
+#master_nocl = master_nocl.iloc[np.where(master_nocl['annotated_pixels'].to_numpy() > 0)]
 
 master_aus = pd.read_excel(rf'F:/datasets/aus_qcl2026_raw/master_sheet.xlsx' if is_local else r'./aus_qcl2026_processed/master_sheet.xlsx')
-master_aus = master_aus.iloc[np.where(master_aus['annotated_pixels'].to_numpy() > 0)]
+#master_aus = master_aus.iloc[np.where(master_aus['annotated_pixels'].to_numpy() > 0)]
 #%% md
 ## Define Preprocessing Protocol
 #%%
@@ -87,9 +87,9 @@ print(f"Average core processing time: {mean_core_processing_time:.3f} seconds w/
 #%% md
 ## Plot Figures
 #%%
-ir = torch.load(r"G:/test_dir/qcl2026_processed/spectral/s03_c010.pt" if is_local else r'./qcl2026_processed/spectral/s10_c003.pt',weights_only=True).permute(1,2,0).numpy()
-anno = cv2.imread(r"D:/datasets/qcl2026/annotation/s10_c003.png" if is_local else r'./qcl2026_processed/annotation/s10_c003.png')[...,::-1]
-mask = cv2.imread(r"D:/datasets/qcl2026/mask/s10_c003.png" if is_local else r'./qcl2026_processed/mask/s10_c003.png')[...,0] / 255.0
+ir = torch.load(r"G:/test_dir/qcl2026_processed/spectral/s03_c051.pt" if is_local else r'./qcl2026_processed/spectral/s03_c051.pt',weights_only=True).permute(1,2,0).numpy()
+anno = cv2.imread(r"D:/datasets/qcl2026/annotation/s03_c051.png" if is_local else r'./qcl2026_processed/annotation/s03_c051.png')[...,::-1]
+mask = cv2.imread(r"D:/datasets/qcl2026/mask/s03_c051.png" if is_local else r'./qcl2026_processed/mask/s03_c051.png')[...,0] / 255.0
 meanspec_ir = ir[mask==1].mean(0)
 stdspec_ir = ir[mask==1].std(0)
 
@@ -161,3 +161,4 @@ if not is_local:
     f = open(f'results_processing.txt', 'w')
     f.write(''.join(lines))
     f.close()
+#%%

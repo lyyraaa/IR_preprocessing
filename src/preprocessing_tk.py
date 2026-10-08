@@ -9,6 +9,8 @@ sys.path.append(r'/mnt/iusers01/eee01/w37262do/scratch/IR_preprocessing')
 sys.path.append(r'/mnt/iusers01/eee01/w37262do/scratch/IR_preprocessing/PyIR/src')
 from pyir_spectralcollection import PyIR_SpectralCollection as pir
 from sklearn.decomposition import PCA
+import scipy.ndimage as ndimage
+import skimage.exposure
 
 
 class PreprocessingBase():
@@ -133,6 +135,74 @@ class MinMax(PreprocessingBase):
         transformed_wavenumbers = wavenumbers
         return transformed_spectra, transformed_wavenumbers
 
+class Gaussian(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    # args = sigma, order
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+        transformed_image = ndimage.gaussian_filter(image, sigma=float(self.args[0]), order=int(self.args[1]), axes=(0,1))
+        return transformed_image, wavenumbers
+
+class GaussianLaplace(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+        transformed_image = ndimage.gaussian_laplace(image, float(self.args[0]), axes=(0,1))
+        return transformed_image, wavenumbers
+
+class Median(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+        transformed_image = ndimage.median_filter(image, size=(int(self.args[0]),int(self.args[0])), axes=(0,1))
+        return transformed_image, wavenumbers
+
+class SpatialRescale(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+        mins = image[mask == 1].min(axis=0)
+        maxs = image[mask == 1].max(axis=0)
+        transformed_image = np.stack([
+            skimage.exposure.rescale_intensity(image[..., x], in_range=(mins[x], maxs[x]), out_range=(0, 1)) for x in
+            range(len(wavenumbers))
+        ], axis=-1)
+        return transformed_image, wavenumbers
+
+class Hist(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+        transformed_image = np.stack([
+            skimage.exposure.equalize_hist(image[...,x],mask=mask) for x in range(len(wavenumbers))
+        ],axis=-1)
+        return transformed_image, wavenumbers
+
+class AdaptiveHist(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        print("WARNING: This function should not be called in this spatial transform")
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+
+        image = np.clip(image, -1, 1)
+
+        transformed_image = np.stack([
+            skimage.exposure.equalize_adapthist(image[...,x]) for x in range(len(wavenumbers))
+        ],axis=-1)
+        return transformed_image, wavenumbers
+
+
 class GreedyPipeline(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
 
@@ -227,6 +297,13 @@ trans_dict = {
     'asls':asls,
     'greedy':GreedyPipeline,
     'greedy_optimal':GreedyOptimal,
+    ### Spatial transforms
+    'gaussian':Gaussian,
+    'gol':GaussianLaplace,
+    'median':Median,
+    'rescale':SpatialRescale,
+    'hist':Hist,
+    'ahist':AdaptiveHist,
 
 }
 def get_processing_tk_from_name(pipeline_name,args=None):
