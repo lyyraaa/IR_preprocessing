@@ -188,9 +188,26 @@ class Hist(PreprocessingBase):
         ],axis=-1)
         return transformed_image, wavenumbers
 
-class DerivHist(PreprocessingBase):
+class DerivHist1(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
         transformed_spectra, transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 1)
+        return transformed_spectra, transformed_wavenumbers
+
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h,w,c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = np.stack([
+            skimage.exposure.equalize_hist(transformed_image[..., x], mask=mask) for x in range(len(transformed_wavenumbers))
+        ],axis=-1)
+        return transformed_image, transformed_wavenumbers
+
+class DerivHist2(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+        transformed_spectra, transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 2)
         return transformed_spectra, transformed_wavenumbers
 
     def image_transform(self, image, wavenumbers=None, mask=None):
@@ -273,14 +290,24 @@ class GreedyPipeline(PreprocessingBase):
             transformed_spectra = transformed_spectra - transformed_spectra.min(1, keepdims=True)
             transformed_spectra = transformed_spectra / transformed_spectra.max(1, keepdims=True)
         elif self.args[4] == 'amidei':
-            transformed_spectra = self.kit.feature_norm(data=transformed_spectra, feature_pos=1550,wavenumbers=transformed_wavenumbers)
-        elif self.args[4] == 'amideii':
             transformed_spectra = self.kit.feature_norm(data=transformed_spectra, feature_pos=1650,wavenumbers=transformed_wavenumbers)
+        elif self.args[4] == 'amideii':
+            transformed_spectra = self.kit.feature_norm(data=transformed_spectra, feature_pos=1550,wavenumbers=transformed_wavenumbers)
         elif self.args[4] == 'vectornorm':
             transformed_spectra = self.kit.vector_norm(transformed_spectra)
 
         return transformed_spectra, transformed_wavenumbers
 
+class ConcatDeriv(PreprocessingBase):
+    def spectral_transform(self, spectra, wavenumbers=None):
+
+        transformed_spectra,transformed_wavenumbers = self.kit.data_deriv(spectra, wavenumbers, 21, 5, 1)
+        transformed_spectra = self.kit.vector_norm(transformed_spectra)
+
+        transformed_spectra = np.concatenate((spectra, transformed_spectra), axis=-1)
+        transformed_wavenumbers = np.concatenate((wavenumbers, transformed_wavenumbers), axis=-1)
+
+        return transformed_spectra, transformed_wavenumbers
 
 class GreedyOptimal(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
@@ -321,7 +348,10 @@ trans_dict = {
     'rescale':SpatialRescale,
     'hist':Hist,
     'ahist':AdaptiveHist,
-
+    'derivhist1':DerivHist1,
+    'derivhist2':DerivHist2,
+    # Concatenating transforms
+    'concatderiv':ConcatDeriv,
 }
 def get_processing_tk_from_name(pipeline_name,args=None):
     return trans_dict[pipeline_name](args)
