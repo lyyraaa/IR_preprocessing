@@ -66,6 +66,9 @@ save_best_model = True
 master_nocl = pd.read_excel(r'D:/datasets/qcl2026/master_sheet.xlsx' if is_local else './qcl2026_processed/master_sheet.xlsx')
 master_aus = pd.read_excel(r'D:/datasets/aus_qcl2026/master_sheet.xlsx' if is_local else './aus_qcl2026_processed/master_sheet.xlsx')
 
+master_nocl = master_nocl.drop(master_nocl[master_nocl['annotated_pixels'] == 0].index)
+master_aus = master_aus.drop(master_aus[master_aus['annotated_pixels'] == 0].index)
+
 # Add offset to patient ID in AUS dataset so no false associations
 master_nocl['patient_id'] = (master_nocl['patient_id'].to_numpy() + 1000000).astype(str)
 #%%
