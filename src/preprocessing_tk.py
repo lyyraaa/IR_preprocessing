@@ -298,6 +298,20 @@ class GreedyPipeline(PreprocessingBase):
 
         return transformed_spectra, transformed_wavenumbers
 
+class GreedyHist(GreedyPipeline):
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h, w, c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = np.stack([
+            skimage.exposure.equalize_hist(transformed_image[..., x], mask=mask) for x in
+            range(len(transformed_wavenumbers))
+        ], axis=-1)
+        return transformed_image, transformed_wavenumbers
+
 class ConcatDeriv(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
 
@@ -350,6 +364,7 @@ trans_dict = {
     'ahist':AdaptiveHist,
     'derivhist1':DerivHist1,
     'derivhist2':DerivHist2,
+    'greedyhist':GreedyHist,
     # Concatenating transforms
     'concatderiv':ConcatDeriv,
 }
