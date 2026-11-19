@@ -312,6 +312,58 @@ class GreedyHist(GreedyPipeline):
         ], axis=-1)
         return transformed_image, transformed_wavenumbers
 
+class GreedyAdaptiveHist(GreedyPipeline):
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h, w, c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = np.clip(transformed_image, -1, 1)
+        transformed_image = np.stack([
+            skimage.exposure.equalize_adapthist(transformed_image[..., x]) for x in range(len(transformed_wavenumbers))
+        ], axis=-1)
+        return transformed_image, transformed_wavenumbers
+
+class GreedyGaussian(GreedyPipeline):
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h, w, c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = ndimage.gaussian_filter(transformed_image, sigma=float(self.args[5]), order=int(self.args[6]), axes=(0,1))
+        return transformed_image, transformed_wavenumbers
+
+class GreedyRescale(GreedyPipeline):
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h, w, c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        mins = transformed_image[mask == 1].min(axis=0)
+        maxs = transformed_image[mask == 1].max(axis=0)
+        transformed_image = np.stack([
+            skimage.exposure.rescale_intensity(transformed_image[..., x], in_range=(mins[x], maxs[x]), out_range=(0, 1)) for x in
+            range(len(transformed_wavenumbers))
+        ], axis=-1)
+        return transformed_image, transformed_wavenumbers
+
+class GreedyGoL(GreedyPipeline):
+    def image_transform(self, image, wavenumbers=None, mask=None):
+        h, w, c = image.shape
+
+        transformed_spectra, transformed_wavenumbers = self.spectral_transform(image[mask == 1], wavenumbers)
+        transformed_image = np.zeros((h, w, transformed_spectra.shape[-1]))
+        transformed_image[np.where(mask == 1)] = transformed_spectra
+
+        transformed_image = ndimage.gaussian_laplace(transformed_image, float(self.args[5]), axes=(0,1))
+        return transformed_image, transformed_wavenumbers
+
 class ConcatDeriv(PreprocessingBase):
     def spectral_transform(self, spectra, wavenumbers=None):
 
@@ -364,7 +416,12 @@ trans_dict = {
     'ahist':AdaptiveHist,
     'derivhist1':DerivHist1,
     'derivhist2':DerivHist2,
+    # Greedy -> spatial transforms
+    'greedygaussian':GreedyGaussian,
+    'greedygol':GreedyGoL,
+    'greedyrescale':GreedyRescale,
     'greedyhist':GreedyHist,
+    'greedyahist':GreedyAdaptiveHist,
     # Concatenating transforms
     'concatderiv':ConcatDeriv,
 }
